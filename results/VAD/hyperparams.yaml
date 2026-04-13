@@ -1,0 +1,215 @@
+# Generated 2026-03-05 from:
+# /courses/CS6140.202630/students/cong.m/hparams/train.yaml
+# yamllint disable
+# ##################################################################################################
+# Model: VAD on LibriParty with CRDNN.
+# This code heavily relis on on-the-fly data augmentation using external data.
+# Before running the code, please download the needed datasets:
+#
+# - LibriParty: https://www.dropbox.com/s/8zcn6zx4fnxvfyt/LibriParty.tar.gz?dl=0
+# - Musan: https://www.openslr.org/resources/17/musan.tar.gz
+# - CommonLanguage: https://zenodo.org/record/5036977/files/CommonLanguage.tar.gz?download=1
+#
+# Authors: Mohamed Kleit 2021
+#          Arjun V 2021
+#          Mirco Ravanelli 2021
+# ##################################################################################################
+
+# Seed and output folders
+seed: 1986
+__set_seed: !apply:speechbrain.utils.seed_everything [1986]
+output_folder: /courses/CS6140.202630/students/cong.m/results/VAD
+save_folder: /courses/CS6140.202630/students/cong.m/results/VAD/save
+train_log: /courses/CS6140.202630/students/cong.m/results/VAD/train_log.txt
+
+# LibriParty (main data)
+data_folder: /courses/CS6140.202630/students/cong.m/LibriParty/dataset
+
+# Openrir Dataset for augmentation
+data_folder_noise: 
+  /courses/CS6140.202630/students/cong.m/LibriParty/dataset/noise # The noisy sequences for data augmentation will automatically be downloaded here.
+NOISE_DATASET_URL: 
+  https://www.dropbox.com/scl/fi/a09pj97s5ifan81dqhi4n/noises.zip?rlkey=j8b0n9kdjdr32o1f06t0cw5b7&dl=1
+noise_csv_openrir: 
+  /courses/CS6140.202630/students/cong.m/results/VAD/save/noise_openrir.csv #The data manifest files are created by the data preparation script
+
+# Additional data (for augmentation)
+musan_folder: /courses/CS6140.202630/students/cong.m/musan
+commonlanguage_folder: /courses/CS6140.202630/students/cong.m/CommonLanguage
+
+# Manifest files (created by the data preparation)
+annotation_train: 
+  /courses/CS6140.202630/students/cong.m/results/VAD/save/train.json
+annotation_valid: 
+  /courses/CS6140.202630/students/cong.m/results/VAD/save/valid.json
+annotation_test: 
+  /courses/CS6140.202630/students/cong.m/results/VAD/save/test.json
+music_csv: /courses/CS6140.202630/students/cong.m/results/VAD/save/music.csv
+noise_csv: /courses/CS6140.202630/students/cong.m/results/VAD/save/noise.csv
+speech_csv: /courses/CS6140.202630/students/cong.m/results/VAD/save/speech.csv
+multilang_speech_csv: 
+  /courses/CS6140.202630/students/cong.m/results/VAD/save/multilang_speech.csv
+skip_prep: false # Skip data preparation
+
+####################### Training Parameters ####################################
+N_epochs: 100
+lr: 1.0
+lr_final: 0.1
+batch_size: 2
+example_length: 5 # in seconds
+sample_rate: 16000
+time_resolution: 0.01 # in seconds
+
+num_workers: 4
+train_dataloader_opts:
+  batch_size: 2
+  num_workers: 4
+valid_dataloader_opts:
+  batch_size: 2
+  num_workers: 4
+test_dataloader_opts:
+  batch_size: 2
+  num_workers: 4
+
+# Feature parameters
+n_fft: 400
+n_mels: 40
+
+####################### Model Parameters #######################################
+# activation: !name:torch.nn.LeakyReLU
+# dropout: 0.15
+# cnn_blocks: 2
+# cnn_channels: (16, 16)
+# cnn_kernelsize: (3, 3)
+rnn_layers: 2
+rnn_neurons: 32
+# rnn_bidirectional: True
+# dnn_blocks: 1
+dnn_neurons: 16
+output_neurons: 1
+
+
+# Data augmentation
+# Download and prepare the dataset of noisy sequences for augmentation
+prepare_noise_data: !name:speechbrain.augment.preparation.prepare_dataset_from_URL
+  URL: 
+    https://www.dropbox.com/scl/fi/a09pj97s5ifan81dqhi4n/noises.zip?rlkey=j8b0n9kdjdr32o1f06t0cw5b7&dl=1
+  dest_folder: /courses/CS6140.202630/students/cong.m/LibriParty/dataset/noise
+  ext: wav
+  csv_file: 
+    /courses/CS6140.202630/students/cong.m/results/VAD/save/noise_openrir.csv
+
+add_noise: !new:speechbrain.augment.time_domain.AddNoise
+  csv_file: 
+    /courses/CS6140.202630/students/cong.m/results/VAD/save/noise_openrir.csv
+  snr_low: -5
+  snr_high: 15
+  noise_sample_rate: 16000
+  clean_sample_rate: 16000
+  num_workers: 4
+
+add_noise_musan: !new:speechbrain.augment.time_domain.AddNoise
+  csv_file: /courses/CS6140.202630/students/cong.m/results/VAD/save/noise.csv
+  snr_low: -5
+  snr_high: 15
+  noise_sample_rate: 16000
+  clean_sample_rate: 16000
+  num_workers: 4
+
+add_music_musan: !new:speechbrain.augment.time_domain.AddNoise
+  csv_file: /courses/CS6140.202630/students/cong.m/results/VAD/save/music.csv
+  snr_low: -5
+  snr_high: 15
+  noise_sample_rate: 16000
+  clean_sample_rate: 16000
+  num_workers: 4
+
+add_speech_musan: !new:speechbrain.augment.time_domain.AddNoise
+  csv_file: /courses/CS6140.202630/students/cong.m/results/VAD/save/speech.csv
+  snr_low: -5
+  snr_high: 15
+  noise_sample_rate: 16000
+  clean_sample_rate: 16000
+  num_workers: 4
+
+#add_speech_multilang: !new:speechbrain.augment.time_domain.AddNoise
+#    csv_file: !ref <multilang_speech_csv>
+#    snr_low: -5
+#    snr_high: 15
+#    noise_sample_rate: 16000
+#    clean_sample_rate: 16000
+#    num_workers: !ref <num_workers>
+
+# Models
+compute_features: !new:speechbrain.lobes.features.Fbank
+  sample_rate: 16000
+  n_fft: 400
+  n_mels: 40
+  hop_length: 10.0                            # in ms
+
+mean_var_norm: &id005 !new:speechbrain.processing.features.InputNormalization
+
+  norm_type: sentence
+
+cnn: &id001 !new:speechbrain.nnet.containers.Sequential
+  input_shape: [null, null, 40]
+  norm1: !name:speechbrain.nnet.normalization.LayerNorm
+  cnn1: !name:speechbrain.lobes.models.CRDNN.CNN_Block
+    channels: 16
+    kernel_size: (3, 3)
+  cnn2: !name:speechbrain.lobes.models.CRDNN.CNN_Block
+    channels: 32
+    kernel_size: (3, 3)
+
+rnn: &id002 !new:speechbrain.nnet.RNN.GRU
+  input_shape: [null, null, 320]
+  hidden_size: 32
+  num_layers: 2
+  bidirectional: true
+
+dnn: &id003 !new:speechbrain.nnet.containers.Sequential
+  input_shape: [null, null, 64]
+  dnn1: !name:speechbrain.lobes.models.CRDNN.DNN_Block
+    neurons: 16
+  dnn2: !name:speechbrain.lobes.models.CRDNN.DNN_Block
+    neurons: 16
+  lin: !name:speechbrain.nnet.linear.Linear
+    n_neurons: 1
+    bias: false
+
+
+model: &id004 !new:torch.nn.ModuleList
+- [*id001, *id002, *id003]
+modules:
+  model: *id004
+  cnn: *id001
+  rnn: *id002
+  dnn: *id003
+  mean_var_norm: *id005
+opt_class: !name:torch.optim.Adadelta
+  lr: 1.0
+  rho: 0.95
+  eps: 1.e-8
+
+epoch_counter: &id006 !new:speechbrain.utils.epoch_loop.EpochCounter
+
+  limit: 100
+
+lr_annealing: !new:speechbrain.nnet.schedulers.LinearScheduler
+  initial_value: 1.0
+  final_value: 0.1
+  epoch_count: 100
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+  checkpoints_dir: /courses/CS6140.202630/students/cong.m/results/VAD/save
+  recoverables:
+    model: *id004
+    normalizer: *id005
+    counter: *id006
+compute_BCE_cost: !name:speechbrain.nnet.losses.bce_loss
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+  save_file: /courses/CS6140.202630/students/cong.m/results/VAD/train_log.txt
+
+train_stats: !name:speechbrain.utils.metric_stats.BinaryMetricStats
+test_stats: !name:speechbrain.utils.metric_stats.BinaryMetricStats
