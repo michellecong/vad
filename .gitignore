@@ -1,0 +1,6 @@
+.DS_Store
+.claude/
+TORGO/
+energy_vad_eval.py
+hparams/
+visualize_vad.py
